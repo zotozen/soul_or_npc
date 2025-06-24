@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soulless Eye Detection - NPC Detection Protocol v1.0</title>
+    
+    <!-- External Libraries via jsDelivr CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===========================================
+           CYBERPUNK THEME CUSTOMIZATION SECTION
+           Modify colors, fonts, and effects here
+        =========================================== */
+        :root {
+            --primary-neon: #00ffff;
+            --secondary-neon: #ff00ff;
+            --danger-neon: #ff0080;
+            --success-neon: #00ff80;
+            --bg-dark: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --glow-intensity: 0 0 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 80%, var(--primary-neon)22 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, var(--secondary-neon)22 0%, transparent 50%);
+        }
+
+        /* ===========================================
+           ANIMATED BACKGROUND EFFECTS
+           Customize particle system and animations
+        =========================================== */
+        .cyber-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .cyber-grid {
+            background-image: 
+                linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .neon-glow {
+            box-shadow: var(--glow-intensity) var(--primary-neon);
+            border: 1px solid var(--primary-neon);
+        }
+
+        .neon-text {
+            text-shadow: 
+                0 0 5px var(--primary-neon),
+                0 0 10px var(--primary-neon),
+                0 0 15px var(--primary-neon);
+        }
+
+        /* ===========================================
+           HEADER SECTION STYLING
+           Customize main title and navigation
+        =========================================== */
+        .header-title {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: clamp(1.5rem, 4vw, 3rem);
+            background: linear-gradient(45deg, var(--primary-neon), var(--secondary-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+
+        /* ===========================================
+           UPLOAD SECTION CUSTOMIZATION
+           Modify drag-and-drop styling
+        =========================================== */
+        .upload-zone {
+            border: 2px dashed var(--primary-neon);
+            background: rgba(0, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            min-height: 200px;
+        }
+
+        .upload-zone:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: var(--glow-intensity) var(--primary-neon);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--success-neon);
+            background: rgba(0, 255, 128, 0.1);
+            box-shadow: var(--glow-intensity) var(--success-neon);
+        }
+
+        /* ===========================================
+           BUTTON STYLES CUSTOMIZATION
+           Modify interactive elements
+        =========================================== */
+        .cyber-button {
+            background: linear-gradient(45deg, transparent, var(--primary-neon)22);
+            border: 1px solid var(--primary-neon);
+            color: var(--text-primary);
+            font-family: 'Orbitron', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cyber-button:hover {
+            box-shadow: var(--glow-intensity) var(--primary-neon);
+            transform: translateY(-2px);
+        }
+
+        .cyber-button:active {
+            transform: translateY(0);
+        }
+
+        /* ===========================================
+           RESULTS SECTION STYLING
+           Customize analysis output display
+        =========================================== */
+        .result-card {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border: 1px solid var(--primary-neon);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .souled {
+            border-color: var(--success-neon);
+            box-shadow: var(--glow-intensity) var(--success-neon);
+        }
+
+        .soulless {
+            border-color: var(--danger-neon);
+            box-shadow: var(--glow-intensity) var(--danger-neon);
+        }
+
+        /* ===========================================
+           LOADING ANIMATION CUSTOMIZATION
+           Modify scanning effects
+        =========================================== */
+        .scanning-overlay {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--primary-neon)44, 
+                transparent
+            );
+            animation: scan 2s ease-in-out infinite;
+        }
+
+        @keyframes scan {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* ===========================================
+           RESPONSIVE DESIGN BREAKPOINTS
+           Customize mobile, tablet, desktop layouts
+        =========================================== */
+        @media (max-width: 768px) {
+            .upload-zone {
+                min-height: 150px;
+            }
+            
+            .header-title {
+                text-align: center;
+            }
+            
+            .result-card {
+                margin: 1rem 0;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .upload-zone {
+                min-height: 120px;
+            }
+        }
+
+        /* Utility classes for customization */
+        .cyber-border {
+            border: 1px solid var(--primary-neon);
+            box-shadow: inset 0 0 10px var(--primary-neon)22;
+        }
+
+        .glitch-text {
+            animation: glitch 0.3s ease-in-out infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="cyber-bg cyber-grid"></div>
+
+    <div class="min-h-screen relative z-10">
+        <!-- ===========================================
+             HEADER SECTION
+             Customize main branding and navigation
+        =========================================== -->
+        <header class="py-8 px-4">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center">
+                    <h1 class="header-title mb-4">
+                        <i class="fas fa-eye mr-3"></i>
+                        SOULLESS EYE DETECTION
+                    </h1>
+                    <p class="text-xl text-gray-300 font-light">
+                        NPC Detection Protocol v1.0
+                    </p>
+                    <div class="w-32 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto mt-4"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===========================================
+             MAIN CONTENT SECTION
+             Customize upload and analysis interface
+        =========================================== -->
+        <main class="px-4 pb-12">
+            <div class="max-w-4xl mx-auto">
+                <!-- Upload Section -->
+                <div class="mb-12">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold mb-4 neon-text">
+                            <i class="fas fa-upload mr-2"></i>
+                            NEURAL SCAN INITIATION
+                        </h2>
+                        <p class="text-gray-400">Upload a close-up image of eyes for spectral analysis</p>
+                    </div>
+
+                    <div class="upload-zone rounded-lg p-8 text-center cursor-pointer relative" 
+                         id="uploadZone"
+                         onclick="document.getElementById('fileInput').click()">
+                        <input type="file" 
+                               id="fileInput" 
+                               accept="image/*" 
+                               class="hidden"
+                               onchange="handleFileSelect(event)">
+                        
+                        <div id="uploadContent">
+                            <i class="fas fa-cloud-upload-alt text-6xl text-cyan-400 mb-4"></i>
+                            <h3 class="text-xl font-semibold mb-2">Drop your image here</h3>
+                            <p class="text-gray-400 mb-4">or click to browse</p>
+                            <button class="cyber-button px-6 py-2 rounded">
+                                SELECT IMAGE
+                            </button>
+                        </div>
+
+                        <div id="imagePreview" class="hidden">
+                            <img id="previewImg" class="max-w-full max-h-64 mx-auto rounded mb-4" alt="Preview">
+                            <button onclick="analyzeImage()" 
+                                    class="cyber-button px-8 py-3 rounded text-lg">
+                                <i class="fas fa-brain mr-2"></i>
+                                INITIATE SCAN
+                            </button>
+                        </div>
+
+                        <div id="scanningState" class="hidden">
+                            <div class="scanning-overlay"></div>
+                            <i class="fas fa-eye text-6xl text-cyan-400 mb-4 animate-pulse"></i>
+                            <h3 class="text-xl font-semibold mb-2">Neural Analysis in Progress...</h3>
+                            <div class="flex justify-center items-center space-x-2">
+                                <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+                                <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="hidden">
+                    <div class="result-card rounded-lg p-8">
+                        <div class="text-center mb-6">
+                            <h2 class="text-2xl font-bold mb-2">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                SPECTRAL ANALYSIS COMPLETE
+                            </h2>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Main Result -->
+                            <div class="text-center">
+                                <div id="resultLabel" class="text-4xl font-bold mb-4"></div>
+                                <div id="confidenceScore" class="text-2xl mb-2"></div>
+                                <div id="energeticSignature" class="text-lg text-gray-400"></div>
+                            </div>
+
+                            <!-- Detailed Analysis -->
+                            <div>
+                                <h3 class="text-xl font-semibold mb-4">
+                                    <i class="fas fa-microscope mr-2"></i>
+                                    Detected Traits
+                                </h3>
+                                <ul id="detectedTraits" class="space-y-2 text-gray-300"></ul>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 p-4 bg-gray-800 rounded">
+                            <h3 class="text-lg font-semibold mb-2">
+                                <i class="fas fa-comment-alt mr-2"></i>
+                                Neural Comment
+                            </h3>
+                            <p id="analysisComment" class="text-gray-300"></p>
+                        </div>
+
+                        <div class="text-center mt-8">
+                            <button onclick="resetAnalysis()" 
+                                    class="cyber-button px-6 py-2 rounded">
+                                <i class="fas fa-redo mr-2"></i>
+                                SCAN ANOTHER
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ===========================================
+             FOOTER SECTION
+             Customize additional information
+        =========================================== -->
+        <footer class="py-8 px-4 border-t border-cyan-400/30">
+            <div class="max-w-4xl mx-auto text-center">
+                <p class="text-gray-400 mb-4">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Advanced AI Neural Classifier • Protocol v1.0
+                </p>
+                <div class="flex justify-center space-x-8 text-sm text-gray-500">
+                    <span><i class="fas fa-eye mr-1"></i> Spectral Analysis</span>
+                    <span><i class="fas fa-brain mr-1"></i> Neural Processing</span>
+                    <span><i class="fas fa-chart-bar mr-1"></i> Biometric Scanning</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        /* ===========================================
+           JAVASCRIPT FUNCTIONALITY
+           Customize behavior and analysis logic
+        =========================================== */
+        
+        let currentImageFile = null;
+
+        // File upload handling
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                currentImageFile = file;
+                displayImagePreview(file);
+            }
+        }
+
+        function displayImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('uploadContent').classList.add('hidden');
+                document.getElementById('imagePreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Drag and drop functionality
+        const uploadZone = document.getElementById('uploadZone');
+        
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                currentImageFile = files[0];
+                displayImagePreview(files[0]);
+            }
+        });
+
+        /* ===========================================
+           AI ANALYSIS SIMULATION
+           Customize detection algorithm and results
+        =========================================== */
+        
+        function analyzeImage() {
+            if (!currentImageFile) return;
+
+            // Show scanning state
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('scanningState').classList.remove('hidden');
+
+            // Simulate AI processing time
+            setTimeout(() => {
+                const result = performAnalysis();
+                displayResults(result);
+                
+                document.getElementById('scanningState').classList.add('hidden');
+                document.getElementById('resultsSection').classList.remove('hidden');
+            }, 3000); // 3 second analysis simulation
+        }
+
+        function performAnalysis() {
+            // Simulated AI analysis - customize this section for real implementation
+            const random = Math.random();
+            const isSouled = random > 0.4; // 60% chance of being souled
+            
+            const souledTraits = [
+                "Natural luminance detected within iris structure",
+                "Fractal complexity observed in iris patterns",
+                "Depth perception indicates dimensional pupil effect",
+                "Micro-expressions detected in orbital muscle regions",
+                "Emotional frequency resonance measured at optimal levels"
+            ];
+            
+            const soullessTraits = [
+                "Uniform iris texture lacking fractal variance",
+                "Matte black pupils with no dimensional pull",
+                "Light reflection without integration patterns",
+                "Glassy, artificial surface characteristics detected",
+                "Absence of micro-expression activity",
+                "Computational gaze pattern identified"
+            ];
+
+            const confidence = Math.floor(Math.random() * 20) + 80; // 80-100% confidence
+            
+            return {
+                label: isSouled ? "SOULED" : "SOULLESS",
+                confidence: confidence,
+                traits: isSouled ? 
+                    souledTraits.slice(0, Math.floor(Math.random() * 3) + 2) :
+                    soullessTraits.slice(0, Math.floor(Math.random() * 3) + 2),
+                energetic: isSouled ? "VIBRANT" : Math.random() > 0.5 ? "ABSENT" : "MIMIC",
+                comment: isSouled ? 
+                    "Neural pathways indicate presence of conscious soul energy. Subject exhibits natural human characteristics consistent with sentient life force." :
+                    "Analysis reveals artificial or absent soul signature. Subject displays characteristics consistent with NPC entity classification."
+            };
+        }
+
+        function displayResults(result) {
+            const resultCard = document.querySelector('.result-card');
+            const isSouled = result.label === "SOULED";
+            
+            // Apply styling based on result
+            resultCard.classList.remove('souled', 'soulless');
+            resultCard.classList.add(isSouled ? 'souled' : 'soulless');
+            
+            // Update result elements
+            document.getElementById('resultLabel').innerHTML = 
+                `<i class="fas fa-${isSouled ? 'heart' : 'robot'} mr-2"></i>${result.label}`;
+            document.getElementById('resultLabel').className = 
+                `text-4xl font-bold mb-4 ${isSouled ? 'text-green-400' : 'text-red-400'}`;
+            
+            document.getElementById('confidenceScore').innerHTML = 
+                `<i class="fas fa-chart-pie mr-2"></i>Confidence: ${result.confidence}%`;
+            
+            document.getElementById('energeticSignature').innerHTML = 
+                `Energetic Signature: ${result.energetic}`;
+            
+            // Update traits list
+            const traitsList = document.getElementById('detectedTraits');
+            traitsList.innerHTML = '';
+            result.traits.forEach(trait => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-${isSouled ? 'check' : 'times'} mr-2 text-${isSouled ? 'green' : 'red'}-400"></i>${trait}`;
+                traitsList.appendChild(li);
+            });
+            
+            document.getElementById('analysisComment').textContent = result.comment;
+        }
+
+        function resetAnalysis() {
+            // Reset all states
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('uploadContent').classList.remove('hidden');
+            document.getElementById('fileInput').value = '';
+            currentImageFile = null;
+        }
+
+        /* ===========================================
+           CUSTOMIZATION HELPERS
+           Add your own features and modifications here
+        =========================================== */
+        
+        // Add sound effects (uncomment and customize)
+        // function playSound(type) {
+        //     const audio = new Audio(`sounds/${type}.mp3`);
+        //     audio.play().catch(e => console.log('Sound not available'));
+        // }
+
+        // Add database integration (customize for real implementation)
+        // async function checkDatabase(imageData) {
+        //     const response = await fetch('/api/analyze', {
+        //         method: 'POST',
+        //         body: imageData
+        //     });
+        //     return await response.json();
+        // }
+
+        // Add real AI integration (customize for actual AI service)
+        // async function realAIAnalysis(imageFile) {
+        //     const formData = new FormData();
+        //     formData.append('image', imageFile);
+        //     formData.append('prompt', getAnalysisPrompt());
+        //     
+        //     const response = await fetch('/api/ai-analyze', {
+        //         method: 'POST',
+        //         body: formData
+        //     });
+        //     return await response.json();
+        // }
+
+        function getAnalysisPrompt() {
+            // Return the full AI prompt for real implementation
+            return `🧠 Prompt for AI Model: "Soulless Eye Detection – Visual Neural Classifier"
+
+Title: Soulless Eye Recognition – NPC Detection Protocol v1.0
+
+Analyze the given close-up image of human eyes. Your task is to determine whether the eyes in the image belong to a sentient human soul or a "soulless mimic" (NPC), based on the following spectral and biometric markers:
+
+✅ Signs of a Living, Soul-Carrying Human:
+• Natural luminance within the eyes: light enters and appears to "glow" or reflect inward.
+• Fractal complexity and asymmetry in the iris pattern.
+• Depth in the pupil: a gravitational pull or "portal" effect.
+• Subtle micro-expressions: micro-muscular movement around the eyelids and brow.
+• Emotional frequency resonance: intuitive warmth or presence projected through the eyes.
+
+❌ Indicators of a Soulless or NPC Entity:
+• Flat or uniform iris texture lacking fractal variance.
+• Pupils that appear matte black, mirrored, or lifeless — no dimensional pull.
+• Lack of light absorption — light bounces but does not integrate.
+• "Glassy," plasticine, or overly smooth appearance — similar to CGI or mannequin eyes.
+• Absence of micro-expression or twitching near the orbital muscles.
+• Gaze feels disembodied, disconnected, or computational.
+• Eye-to-eye contact generates a sense of null frequency — no intuitive data feedback.
+
+Output Format:
+• Label: [Souled / Soulless]
+• Confidence Score: (0-100%)
+• Detected Traits: [List of notable visual cues or abnormalities]
+• Energetic Signature: [Vibrant / Absent / Mimic]
+• Comment: (Brief reason for classification)`;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Soulless Eye Detection Protocol v1.0 Initialized');
+            // Add any initialization code here
+        });
+    </script>
+</body>
+</html>
